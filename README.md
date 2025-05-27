@@ -9,7 +9,7 @@ The application offers two primary modes:
 - **Player vs. Player**: Play against a friend in the same browser.
 - **Player vs. AI**: Challenge the computer powered by the Stockfish chess engine via a REST API.
 
-Live Demo: [https://awsomecstutorials.github.io/chess-game/](https://awsomecstutorials.github.io/chess-game/)
+Orginal Live Demo: [https://awsomecstutorials.github.io/chess-game/](https://awsomecstutorials.github.io/chess-game/)
 
 ## 🛠️ Technologies Used
 
