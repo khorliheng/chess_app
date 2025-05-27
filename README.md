@@ -38,5 +38,18 @@ Through this project, I aim to:
 - Explore AI implementation in games.
 - Enhance skills in UI/UX design and responsive web development.
 
-## 📁 Project Structure
+## 📺 Tutorial Reference
+
+This project is based on the tutorial by FreeCodeCamp:
+
+[Code a Chess Game with Stockfish API – JavaScript Tutorial](https://www.youtube.com/watch?v=fJIsqZmQVZQ)
+
+## 📬 Contact
+
+For any queries or collaboration opportunities, feel free to reach out:
+
+- **Email**: khorliheng31@gmail.com
+- **LinkedIn**: [linkedin.com/in/henrykhor](https://www.linkedin.com/in/li-heng-khor-a6769b20b/)
+
+---
 
