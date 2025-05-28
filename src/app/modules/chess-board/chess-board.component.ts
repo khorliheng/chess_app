@@ -31,6 +31,11 @@ export class ChessBoardComponent {
     return this.pieceSafeSquares.some(coords=> coords.x === x && coords.y === y);
   }
 
+  private unmarkingPreviouslySelectedAndSafeSquares(): void {
+    this.selectedSquare = { piece: null };
+    this.pieceSafeSquares = [];
+  }
+
   private selectingPiece(x:number, y:number): void{
     const piece: FENChar | null = this.chessBoardView[x][y];
     if (!piece) {
@@ -59,6 +64,7 @@ export class ChessBoardComponent {
     const {x: prevX, y: prevY} = this.selectedSquare;
     this.chessBoard.move(prevX, prevY, newX, newY);
     this.chessBoardView = this.chessBoard.chessBoardView;
+    this.unmarkingPreviouslySelectedAndSafeSquares();
   }
 
   public move(x: number, y: number): void {

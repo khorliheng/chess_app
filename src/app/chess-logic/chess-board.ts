@@ -141,7 +141,7 @@ export class ChessBoard{
                     if(piece instanceof Pawn){
                         if(dx===2 || dx === -2){
                             if(newPiece) continue;
-                            if(this.chessBoard[newX + (dx === 2 ? 1 : -1)][newY]){
+                            if(this.chessBoard[newX + (dx === 2 ? -1 : 1)][newY]){
                                 continue;
                             }
                         }
@@ -174,6 +174,8 @@ export class ChessBoard{
                 }
             }
         }
+
+        console.log("Safe squares found:", safeSquares);
 
         return safeSquares
     }  
