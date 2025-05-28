@@ -5,7 +5,7 @@
             'light':!isSquareDark(x,y),
             'selected-square': isSquareSelected(x,y)
             }
-            " (click)="selectingPiece(x,y)">
+            " (click)="move(x,y)">
 
             <div [ngClass]="{'safe-square': isSquareSafeForSelectedPiece(x,y)}"></div>
             

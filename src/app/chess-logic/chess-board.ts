@@ -176,5 +176,31 @@ export class ChessBoard{
         }
 
         return safeSquares
+    }  
+
+    public move(prevX: number, prevY: number, newX: number, newY: number): void{
+
+        if(!this.areCoordsValid(prevX, prevY) || !this.areCoordsValid(newX,newY)) {
+            console.error("Invalid coordinates for move:", prevX, prevY, newX, newY);
+            return;
+        }
+        const piece: Piece|null = this.chessBoard[prevX][prevY];
+        if(!piece || piece.color !== this._playerColor) {
+            console.warn("Invalid piece or player color mismatch for move:", piece, this._playerColor);
+            return;
+        }
+
+        const pieceSafeSquares: Coords[] | undefined = this._safeSquares.get(prevX + "," + prevY);
+        if(!pieceSafeSquares || !pieceSafeSquares.find(coords => coords.x === newX && coords.y === newY)){
+            throw new Error("Invalid move: The piece cannot move to the specified square.");
+        }
+        if((piece instanceof Pawn || piece instanceof King || piece instanceof Rook)&& !piece.hasMoved){
+            piece.hasMoved = true;
+        }
+
+        this.chessBoard[prevX][prevY] = null;
+        this.chessBoard[newX][newY] = piece;
+        this._playerColor = piece.color === Color.White ? Color.Black : Color.White;
+        this._safeSquares = this.findSafeSquares();
     }
 };

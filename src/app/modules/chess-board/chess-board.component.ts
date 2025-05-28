@@ -31,13 +31,39 @@ export class ChessBoardComponent {
     return this.pieceSafeSquares.some(coords=> coords.x === x && coords.y === y);
   }
 
-  public selectingPiece(x:number, y:number): void{
-    const piece: FENChar | null = this.chessBoardView[y][x];
-    if (!piece) return;
-    if(this.isWrongPieceSelected(piece)) return;
+  private selectingPiece(x:number, y:number): void{
+    const piece: FENChar | null = this.chessBoardView[x][y];
+    if (!piece) {
+      console.warn("No piece selected at the given coordinates.");
+      return;
+    }
+    if(this.isWrongPieceSelected(piece)) {
+      console.warn("Selected piece does not belong to the current player.");
+      return;
+    }
 
     this.selectedSquare = { piece, x, y };
     this.pieceSafeSquares= this.safeSquares.get(x + "," + y) || [];
+  }
+
+  private placingPiece(newX: number, newY: number): void {
+    if (!this.selectedSquare.piece) {
+      console.warn("No piece selected to place.");
+      return;
+    }
+    if(!this.isSquareSafeForSelectedPiece(newX, newY)){
+      // console.warn("Selected square is not safe for the piece.");
+      return;
+    }
+    
+    const {x: prevX, y: prevY} = this.selectedSquare;
+    this.chessBoard.move(prevX, prevY, newX, newY);
+    this.chessBoardView = this.chessBoard.chessBoardView;
+  }
+
+  public move(x: number, y: number): void {
+    this.selectingPiece(x, y);
+    this.placingPiece(x, y);
   }
 
   private isWrongPieceSelected(piece:FENChar): boolean{
