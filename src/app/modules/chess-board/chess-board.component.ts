@@ -15,10 +15,21 @@ export class ChessBoardComponent {
   public chessBoardView: (FENChar | null)[][] = this.chessBoard.chessBoardView;
   public get playerColor(): Color {return this.chessBoard.playerColor;};
   public get safeSquares(): SafeSquares {return this.chessBoard.safeSquare;}
+
   private selectedSquare: SelectedSquare = { piece: null };
   private pieceSafeSquares: Coords[] = [];
   private lastMove: LastMove| undefined = this.chessBoard.lastMove;
   private checkState: CheckState= this.chessBoard.checkState;
+
+  //promotion properties
+  public isPromotionActive: boolean = false;
+  public promotionCoords: Coords | null = null;
+  private promotedPiece: FENChar | null = null;
+  public promotionPieces(): FENChar[]{
+    return this.playerColor === Color.White ? 
+      [FENChar.WhiteKnight, FENChar.WhiteBishop, FENChar.WhiteRook, FENChar.WhiteQueen] :
+      [FENChar.BlackKnight, FENChar.BlackBishop, FENChar.BlackRook, FENChar.BlackQueen];
+  }
 
   public isSquareDark(x: number, y: number): boolean {
     return ChessBoard.isSquareDark(x, y);
@@ -43,10 +54,21 @@ export class ChessBoardComponent {
     return this.checkState.isInCheck && this.checkState.x === x && this.checkState.y === y;
   }
 
+  public isSquarePromotionSquare(x: number, y: number): boolean {
+    if (!this.promotionCoords) return false;
+    return this.promotionCoords.x === x && this.promotionCoords.y === y;
+  }
+
 
   private unmarkingPreviouslySelectedAndSafeSquares(): void {
     this.selectedSquare = { piece: null };
     this.pieceSafeSquares = [];
+
+    if(this.isPromotionActive) {
+      this.isPromotionActive = false;
+      this.promotionCoords = null;
+      this.promotedPiece = null;
+    }
   }
 
   private selectingPiece(x:number, y:number): void{
@@ -73,12 +95,42 @@ export class ChessBoardComponent {
       // console.warn("Selected square is not safe for the piece.");
       return;
     }
+
+    const isPawnSelected: boolean = this.selectedSquare.piece === FENChar.WhitePawn || this.selectedSquare.piece === FENChar.BlackPawn;
+    const isPawnOnlastRank: boolean = isPawnSelected && (newX === 0 || newX === 7);
+    const shouldOpenPromotionDialog: boolean = isPawnOnlastRank && !this.isPromotionActive;
+
+    if(shouldOpenPromotionDialog){
+      this.pieceSafeSquares = [];
+      this.isPromotionActive = true;
+      this.promotionCoords = { x: newX, y: newY };
+      return;
+    }
     
     const {x: prevX, y: prevY} = this.selectedSquare;
-    this.chessBoard.move(prevX, prevY, newX, newY);
+    this.updateBoard(prevX, prevY, newX, newY, this.promotedPiece);
+  }
+
+  private updateBoard(prevX: number, prevY: number, newX: number, newY: number, promotedPiece: FENChar | null): void {
+    console.log(`Moving piece from (${prevX}, ${prevY}) to (${newX}, ${newY}) with promotion: ${promotedPiece}`);
+    this.chessBoard.move(prevX, prevY, newX, newY, promotedPiece);
     this.chessBoardView = this.chessBoard.chessBoardView;
     this.checkState = this.chessBoard.checkState;
     this.lastMove = this.chessBoard.lastMove;
+    this.unmarkingPreviouslySelectedAndSafeSquares();
+  }
+
+  public promotePiece(piece: FENChar): void {
+    if (!this.promotionCoords || !this.selectedSquare.piece) {
+      return;
+    }
+    this.promotedPiece = piece;
+    const { x: newX, y: newY } = this.promotionCoords;
+    const {x: prevX, y: prevY} = this.selectedSquare;
+    this.updateBoard(prevX, prevY, newX, newY, this.promotedPiece);
+  }
+
+  public closePromotionDialog(): void {
     this.unmarkingPreviouslySelectedAndSafeSquares();
   }
 

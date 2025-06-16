@@ -5,7 +5,8 @@
             'light':!isSquareDark(x,y),
             'selected-square': isSquareSelected(x,y),
             'last-move': isSquareLastMove(x,y),
-            'king-in-check': isSquareChecked(x,  y)
+            'king-in-check': isSquareChecked(x,  y),
+            'promotion-square': isSquarePromotionSquare(x,y)
             }
             " (click)="move(x,y)">
 
@@ -13,5 +14,12 @@
             
             <img *ngIf="piece" [src]="pieceImagePaths[piece]" [alt]="piece" class="peice">
         </div>
+    </div>
+
+    <div *ngIf="isPromotionActive" class="promotion-dialog">
+        <img *ngFor="let piece of promotionPieces()" [src]="pieceImagePaths[piece]" (click)="promotePiece(piece)">
+        <span class="close-promotion-dialog" (click)="closePromotionDialog()">
+            &times;
+        </span>>
     </div>
 </div>
