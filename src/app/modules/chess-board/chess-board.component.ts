@@ -15,6 +15,7 @@ export class ChessBoardComponent {
   public chessBoardView: (FENChar | null)[][] = this.chessBoard.chessBoardView;
   public get playerColor(): Color {return this.chessBoard.playerColor;};
   public get safeSquares(): SafeSquares {return this.chessBoard.safeSquare;}
+  public get gameOverMessage(): string | undefined {return this.chessBoard.gameOverMessage;}
 
   private selectedSquare: SelectedSquare = { piece: null };
   private pieceSafeSquares: Coords[] = [];
@@ -72,6 +73,7 @@ export class ChessBoardComponent {
   }
 
   private selectingPiece(x:number, y:number): void{
+    if(this.gameOverMessage !== undefined) return;
     const piece: FENChar | null = this.chessBoardView[x][y];
     if (!piece) {
       console.warn("No piece selected at the given coordinates.");
