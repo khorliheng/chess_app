@@ -7,7 +7,7 @@ import { columns } from '../modules/chess-board/model';
 
 export class FENConverter {
 
-    public converBoardToFEN(
+    public convertBoardToFEN(
         board: (Piece | null)[][],
         playerColor: Color,
         lastMove: LastMove| undefined,
