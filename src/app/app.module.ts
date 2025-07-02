@@ -7,6 +7,7 @@ import { AppComponent } from './app.component';
 import { ChessBoardComponent } from './modules/chess-board/chess-board.component';
 import { ComputerModeComponent } from './modules/computer-mode/computer-mode.component';
 import { NavMenuComponent } from './modules/nav-menu/nav-menu.component';
+import { PlayAgainstComputerDialogComponent } from './modules/play-against-computer-dialog/play-against-computer-dialog.component';
 
 @NgModule({
   declarations: [
@@ -19,7 +20,8 @@ import { NavMenuComponent } from './modules/nav-menu/nav-menu.component';
     BrowserModule,
     HttpClientModule,
     AppRoutingModule,
-    NavMenuComponent
+    NavMenuComponent,
+    PlayAgainstComputerDialogComponent
   ],
   providers: [],
   bootstrap: [AppComponent]

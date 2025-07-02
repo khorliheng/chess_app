@@ -2,6 +2,7 @@ import { Component } from '@angular/core';
 import { ChessBoard } from '../../chess-logic/chess-board';
 import { CheckState, Color, Coords, FENChar, LastMove, pieceImagePaths, SafeSquares } from '../../chess-logic/models';
 import { SelectedSquare } from './model';
+import { ChessBoardService } from './chess-board.service';
 
 @Component({
   selector: 'app-chess-board',
@@ -11,7 +12,7 @@ import { SelectedSquare } from './model';
 export class ChessBoardComponent {
   public pieceImagePaths = pieceImagePaths;
 
-  private chessBoard = new ChessBoard;
+  protected chessBoard = new ChessBoard;
   public chessBoardView: (FENChar | null)[][] = this.chessBoard.chessBoardView;
   public get playerColor(): Color {return this.chessBoard.playerColor;};
   public get safeSquares(): SafeSquares {return this.chessBoard.safeSquare;}
@@ -33,6 +34,8 @@ export class ChessBoardComponent {
   }
 
   public flipMode: boolean = false;
+
+  constructor(protected chessBoardService: ChessBoardService) {} 
 
   public flipBoard(): void{
     this.flipMode = !this.flipMode;
@@ -82,11 +85,11 @@ export class ChessBoardComponent {
     if(this.gameOverMessage !== undefined) return;
     const piece: FENChar | null = this.chessBoardView[x][y];
     if (!piece) {
-      console.warn("No piece selected at the given coordinates.");
+      // console.warn("No piece selected at the given coordinates.");
       return;
     }
     if(this.isWrongPieceSelected(piece)) {
-      console.warn("Selected piece does not belong to the current player.");
+      // console.warn("Selected piece does not belong to the current player.");
       return;
     }
 
@@ -96,7 +99,7 @@ export class ChessBoardComponent {
 
   private placingPiece(newX: number, newY: number): void {
     if (!this.selectedSquare.piece) {
-      console.warn("No piece selected to place.");
+      // console.warn("No piece selected to place.");
       return;
     }
     if(!this.isSquareSafeForSelectedPiece(newX, newY)){
@@ -119,13 +122,14 @@ export class ChessBoardComponent {
     this.updateBoard(prevX, prevY, newX, newY, this.promotedPiece);
   }
 
-  private updateBoard(prevX: number, prevY: number, newX: number, newY: number, promotedPiece: FENChar | null): void {
-    console.log(`Moving piece from (${prevX}, ${prevY}) to (${newX}, ${newY}) with promotion: ${promotedPiece}`);
+  protected updateBoard(prevX: number, prevY: number, newX: number, newY: number, promotedPiece: FENChar | null): void {
+    // console.log(`Moving piece from (${prevX}, ${prevY}) to (${newX}, ${newY}) with promotion: ${promotedPiece}`);
     this.chessBoard.move(prevX, prevY, newX, newY, promotedPiece);
     this.chessBoardView = this.chessBoard.chessBoardView;
     this.checkState = this.chessBoard.checkState;
     this.lastMove = this.chessBoard.lastMove;
     this.unmarkingPreviouslySelectedAndSafeSquares();
+    this.chessBoardService.chessBoardState$.next(this.chessBoard.boardAsFEN);
   }
 
   public promotePiece(piece: FENChar): void {

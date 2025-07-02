@@ -236,7 +236,7 @@ export class ChessBoard{
             }
         }
 
-        console.log("Safe squares found:", safeSquares);
+        // console.log("Safe squares found:", safeSquares);
 
         return safeSquares
     }
