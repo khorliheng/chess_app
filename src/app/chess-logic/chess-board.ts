@@ -1,4 +1,5 @@
-import { Color, FENChar } from "./models";
+import { columns } from "../modules/chess-board/model";
+import { Color, FENChar, MoveType, MoveList, GameHistory } from "./models";
 import { Coords, SafeSquares, LastMove,  CheckState } from "./models";
 import { Bishop } from "./pieces/bishop";
 import { King } from "./pieces/king";
@@ -25,9 +26,11 @@ export class ChessBoard{
     private threeFoldRepetitionDictionary: Map<string, number> = new Map(); 
     private threeFoldRepetitionFlag: boolean = false;
 
-    private _boardAsFEN: string = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+    private _boardAsFEN: string = FENConverter.initalPosition;
     private FENConverter = new FENConverter()
 
+    private _moveList: MoveList = [];
+    private _gameHistory: GameHistory;
     constructor(){
         this.chessBoard = [
             [   
@@ -54,6 +57,7 @@ export class ChessBoard{
             ],
         ];
         this._safeSquares = this.findSafeSquares();
+        this._gameHistory = [{board: this.chessBoardView, lastMove: this._lastMove, checkState: this._checkState}];
     }
 
     public get playerColor():Color{
@@ -89,6 +93,14 @@ export class ChessBoard{
 
     public get boardAsFEN(): string {
         return this._boardAsFEN;
+    }
+
+    public get moveList():MoveList{
+        return this._moveList;
+    }
+
+    public get gameHistory(): GameHistory {
+        return this._gameHistory;
     }
 
     public static isSquareDark(x:number, y:number):boolean{
@@ -310,24 +322,35 @@ export class ChessBoard{
             piece.hasMoved = true;
         }
 
+        const moveType = new Set<MoveType>();
         const isPieceTaken: boolean = this.chessBoard[newX][newY] !== null;
+        if(isPieceTaken) moveType.add(MoveType.Capture);
         if(piece instanceof Pawn ||  isPieceTaken) this.fiftyMoveRuleCounter = 0;
         else this.fiftyMoveRuleCounter+= 0.5;
-        this.handlingSpecialMoves(piece, prevX, prevY, newX, newY);
+        this.handlingSpecialMoves(piece, prevX, prevY, newX, newY, moveType);
 
         if(promotedPieceType){
             this.chessBoard[newX][newY] = this.promotedPiece(promotedPieceType);
+            moveType.add(MoveType.Promotion);
         }else{
             this.chessBoard[newX][newY] = piece;
         }
 
-        this._lastMove={prevX, prevY, currX: newX, currY: newY, piece};
+        this._lastMove={prevX, prevY, currX: newX, currY: newY, piece, moveType};
         this.chessBoard[prevX][prevY] = null;
         this._playerColor = piece.color === Color.White ? Color.Black : Color.White;
         this.isInCheck(this._playerColor, true);
-        this._safeSquares = this.findSafeSquares();
+        const safeSquares: SafeSquares = this.findSafeSquares();
         
+        if(this._checkState.isInCheck){
+            moveType.add(!safeSquares.size ? MoveType.CheckMate : MoveType.Check);
+        }else if(!moveType.size){
+            moveType.add(MoveType.BasicMove);
+        }
+        this.storeMove(promotedPieceType);
+        this.updateGameHistory();
 
+        this._safeSquares = safeSquares;
         if(this._playerColor === Color.White){
             this.fullNumberOfMoves++;
         }
@@ -338,7 +361,7 @@ export class ChessBoard{
         this._isGameOver = this.isgameFinished();
     }
 
-    private handlingSpecialMoves(piece: Piece, prevX: number, prevY: number, newX: number, newY: number): void{
+    private handlingSpecialMoves(piece: Piece, prevX: number, prevY: number, newX: number, newY: number, moveType:Set<MoveType>): void{
         if(piece instanceof King && Math.abs(newY - prevY) === 2){
 
             const rookPositionX: number = prevX;
@@ -348,6 +371,7 @@ export class ChessBoard{
             this.chessBoard[rookPositionX][rookPositionY] = null;
             this.chessBoard[rookPositionX][rookNewPositionY] = rook;
             rook.hasMoved = true;
+            moveType.add(MoveType.Castling);
         }
         else if(
             piece instanceof Pawn &&
@@ -358,6 +382,7 @@ export class ChessBoard{
             newY === this._lastMove.currY
         ){
             this.chessBoard[this._lastMove.currX][this._lastMove.currY] = null;
+            moveType.add(MoveType.Capture);
         }
     }
 
@@ -478,5 +503,84 @@ export class ChessBoard{
             }
             this.threeFoldRepetitionDictionary.set(threeFoldRepetitionFENKey, 2);
         }
+    }
+
+    private storeMove(promotedPiece:FENChar|null): void{
+        const{piece, currX, currY, prevX, prevY, moveType} = this._lastMove!;
+        let pieceName: string = !(piece instanceof Pawn) ? piece.FENChar.toUpperCase() : "";
+        let move: string;
+
+        if(moveType.has(MoveType.Castling)){
+            move = currY - prevY === 2 ? "O-O" : "O-O-O";
+        }else {
+            move = pieceName + this.startingPieceCoordsNotation();
+            if(moveType.has(MoveType.Capture)) move += (piece instanceof Pawn ? columns[prevY] + "x" : "x");
+            move += columns[currY] + String(currX + 1);
+
+            if(promotedPiece){
+                move += "=" + promotedPiece.toUpperCase();
+            }
+        }
+
+        if(moveType.has(MoveType.Check)){
+            move += "+";
+        }else if(moveType.has(MoveType.CheckMate)){
+            move += "#";
+        }
+
+        if(!this._moveList[this.fullNumberOfMoves -1]){
+            this._moveList[this.fullNumberOfMoves - 1]=[move];
+        }else{
+            this._moveList[this.fullNumberOfMoves -1].push(move);
+        }
+    }
+
+    private startingPieceCoordsNotation(): string{
+        const {piece: currPiece, prevX, prevY, currX, currY} = this._lastMove!;
+        if(currPiece instanceof Pawn || currPiece instanceof King){
+            return "";
+        }
+        const samePiecesCoords: Coords[] = [{x: prevX, y: prevY}];
+        for(let x=0; x< this.chessBoardSize; x++){
+            for(let y=0; y< this.chessBoardSize; y++){
+                const piece: Piece|null = this.chessBoard[x][y];
+                if(!piece ||(currX === x && currY === y)){
+                    continue;
+                }
+                if(piece.FENChar === currPiece.FENChar){
+                    const safeSquares: Coords[] = this._safeSquares.get(x + "," + y) || [];
+                    const pieceHasSameTargetSquare: boolean = safeSquares.some(coords => coords.x === currX && coords.y === currY);
+                    if(pieceHasSameTargetSquare){
+                        samePiecesCoords.push({x, y});
+                    }
+                }
+            }
+        }
+
+        if(samePiecesCoords.length === 1){
+            return "";
+        }
+
+        const piecesFile = new Set(samePiecesCoords.map(coords => coords.y));
+        const piecesRank = new Set(samePiecesCoords.map(coords => coords.x));
+
+        //all pieces are on differetn files
+        if(piecesFile.size === samePiecesCoords.length){
+            return columns[prevY];
+        }
+        // all pieces are on different ranks
+        if(piecesRank.size === samePiecesCoords.length){
+            return String(prevX + 1);
+        }
+        //in case of multiple pieces on the same file and rank, return both
+        return columns[prevY] + String(prevX + 1);
+    }
+
+    private updateGameHistory(): void{
+        this._gameHistory.push({
+            board: [...this.chessBoardView.map(row => [...row])],
+            checkState:{... this._checkState},
+            lastMove: this._lastMove ? {...this._lastMove} : undefined
+        });
     }
 }; 

@@ -1,6 +1,6 @@
 import { Component } from '@angular/core';
 import { ChessBoard } from '../../chess-logic/chess-board';
-import { CheckState, Color, Coords, FENChar, LastMove, pieceImagePaths, SafeSquares } from '../../chess-logic/models';
+import { CheckState, Color, Coords, FENChar, GameHistory, LastMove, MoveList, pieceImagePaths, SafeSquares } from '../../chess-logic/models';
 import { SelectedSquare } from './model';
 import { ChessBoardService } from './chess-board.service';
 
@@ -22,6 +22,10 @@ export class ChessBoardComponent {
   private pieceSafeSquares: Coords[] = [];
   private lastMove: LastMove| undefined = this.chessBoard.lastMove;
   private checkState: CheckState= this.chessBoard.checkState;
+
+  public get moveList(): MoveList{return this.chessBoard.moveList; }
+  public get gameHistory(): GameHistory{return this.chessBoard.gameHistory;};
+  public gameHistoryPointer: number = 0;
 
   //promotion properties
   public isPromotionActive: boolean = false;
@@ -130,6 +134,7 @@ export class ChessBoardComponent {
     this.lastMove = this.chessBoard.lastMove;
     this.unmarkingPreviouslySelectedAndSafeSquares();
     this.chessBoardService.chessBoardState$.next(this.chessBoard.boardAsFEN);
+    this.gameHistoryPointer++;
   }
 
   public promotePiece(piece: FENChar): void {
@@ -154,5 +159,13 @@ export class ChessBoardComponent {
   private isWrongPieceSelected(piece:FENChar): boolean{
     const isWhitePieceSelected:boolean = piece === piece.toUpperCase();
     return isWhitePieceSelected && this.playerColor === Color.Black || !isWhitePieceSelected && this.playerColor === Color.White;
+  }
+
+  public showPreviousPosition(moveIndex: number): void {
+    const {board, checkState, lastMove} = this.gameHistory[moveIndex];
+    this.chessBoardView = board;
+    this.checkState = checkState;
+    this.lastMove = lastMove;
+    this.gameHistoryPointer = moveIndex;
   }
 }
