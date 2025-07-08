@@ -1,15 +1,17 @@
-import { Component } from '@angular/core';
+import { Component, OnDestroy, OnInit } from '@angular/core';
 import { ChessBoard } from '../../chess-logic/chess-board';
-import { CheckState, Color, Coords, FENChar, GameHistory, LastMove, MoveList, pieceImagePaths, SafeSquares } from '../../chess-logic/models';
+import { CheckState, Color, Coords, FENChar, GameHistory, LastMove, MoveList, MoveType, pieceImagePaths, SafeSquares } from '../../chess-logic/models';
 import { SelectedSquare } from './model';
 import { ChessBoardService } from './chess-board.service';
+import { filter, fromEvent, Subscription, tap } from 'rxjs';
+import { FENConverter } from '../../chess-logic/FENConverter';
 
 @Component({
   selector: 'app-chess-board',
   templateUrl: './chess-board.component.html',
   styleUrl: './chess-board.component.css'
 })
-export class ChessBoardComponent {
+export class ChessBoardComponent implements OnInit, OnDestroy {
   public pieceImagePaths = pieceImagePaths;
 
   protected chessBoard = new ChessBoard;
@@ -39,7 +41,38 @@ export class ChessBoardComponent {
 
   public flipMode: boolean = false;
 
+  private subscriptions$ = new Subscription();
   constructor(protected chessBoardService: ChessBoardService) {} 
+
+  public ngOnInit(): void {
+    const keyEventSubscription$: Subscription = fromEvent<KeyboardEvent>(document, "keyup")
+      .pipe(
+        filter(event => event.key === "ArrowRight" || event.key === "ArrowLeft"),
+        tap(event => {
+          switch (event.key) {
+            case "ArrowRight":
+              if (this.gameHistoryPointer === this.gameHistory.length - 1) return;
+              this.gameHistoryPointer++;
+              break;
+            case "ArrowLeft":
+              if (this.gameHistoryPointer === 0) return;
+              this.gameHistoryPointer--;
+              break;
+            default:
+              break;
+          }
+
+          this.showPreviousPosition(this.gameHistoryPointer);
+        })
+      ).subscribe();
+
+    this.subscriptions$.add(keyEventSubscription$);
+  }
+
+  public ngOnDestroy(): void {
+    this.subscriptions$.unsubscribe();
+    this.chessBoardService.chessBoardState$.next(FENConverter.initalPosition);
+  }
 
   public flipBoard(): void{
     this.flipMode = !this.flipMode;
@@ -132,6 +165,7 @@ export class ChessBoardComponent {
     this.chessBoardView = this.chessBoard.chessBoardView;
     this.checkState = this.chessBoard.checkState;
     this.lastMove = this.chessBoard.lastMove;
+    this.markLastMoveAndCheckState(this.chessBoard.lastMove, this.chessBoard.checkState);
     this.unmarkingPreviouslySelectedAndSafeSquares();
     this.chessBoardService.chessBoardState$.next(this.chessBoard.boardAsFEN);
     this.gameHistoryPointer++;
@@ -156,6 +190,17 @@ export class ChessBoardComponent {
     this.placingPiece(x, y);
   }
 
+  private markLastMoveAndCheckState(lastMove: LastMove | undefined, checkState: CheckState): void {
+    this.lastMove = lastMove;
+    this.checkState = checkState;
+
+    if(this.lastMove){
+      this.moveSound(this.lastMove.moveType);
+    }else{
+      this.moveSound(new Set<MoveType>([MoveType.BasicMove]));
+    }
+  }
+
   private isWrongPieceSelected(piece:FENChar): boolean{
     const isWhitePieceSelected:boolean = piece === piece.toUpperCase();
     return isWhitePieceSelected && this.playerColor === Color.Black || !isWhitePieceSelected && this.playerColor === Color.White;
@@ -164,8 +209,28 @@ export class ChessBoardComponent {
   public showPreviousPosition(moveIndex: number): void {
     const {board, checkState, lastMove} = this.gameHistory[moveIndex];
     this.chessBoardView = board;
-    this.checkState = checkState;
-    this.lastMove = lastMove;
+    this.markLastMoveAndCheckState(lastMove, checkState);
     this.gameHistoryPointer = moveIndex;
+  }
+
+  private moveSound(moveType:Set<MoveType>): void{
+    const moveSound = new Audio("assets/sounds/move.mp3");
+
+    if(moveType.has(MoveType.Promotion)){
+      moveSound.src = "assets/sounds/promote.mp3";
+    } else if(moveType.has(MoveType.Castling)){
+      moveSound.src = "assets/sounds/castle.mp3";
+    } else if(moveType.has(MoveType.Capture)){
+      moveSound.src = "assets/sounds/capture.mp3";
+    }
+
+    if(moveType.has(MoveType.CheckMate)){
+      moveSound.src = "assets/sounds/checkmate.mp3";
+    }
+    if(moveType.has(MoveType.Check)){
+      moveSound.src = "assets/sounds/check.mp3";
+    }
+
+    moveSound.play();
   }
 }
